@@ -26,5 +26,5 @@ A set of automated Expect scripts designed for managing Juniper Networks (Junos 
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/your-username/junos-expect-automation.git](https://github.com/your-username/junos-expect-automation.git)
-   cd junos-expect-automation
+   git clone [https://github.com/mohammadabidhossain/Juniper_devices_auto_user-and-snmp-creation.git](https://github.com/mohammadabidhossain/Juniper_devices_auto_user-and-snmp-creation.git)
+   cd Juniper_devices_auto_user-and-snmp-creation

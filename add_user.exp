@@ -1,0 +1,100 @@
+#!/usr/bin/expect -f
+
+# ============================================================
+# Usage: ./add_user.exp <switch_ip>
+# Adds administrative user (super-user class) to Junos devices
+# via a centralized jump host.
+# ============================================================
+
+set switch_ip   [lindex $argv 0]
+
+set jump_ip     "10.0.0.10"
+set jump_user   "admin"
+set jump_pass   "ChangeMe123!"
+
+set switch_user "root"
+set switch_pass "JunosPass123!"
+
+set new_user    "ncmadmin"
+set new_pass    "SecurePass123!"
+
+set timeout 20
+
+# ---- HOP 1: SSH to Jump Host ----
+spawn ssh $jump_user@$jump_ip
+
+expect {
+    -nocase "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    -nocase "assword:" {
+        send "$jump_pass\r"
+    }
+}
+
+expect {
+    "$ " { }
+    "# " { }
+}
+
+# ---- HOP 2: SSH to Target Switch ----
+send "ssh $switch_user@$switch_ip\r"
+
+expect {
+    -nocase "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    -nocase "assword:" {
+        send "$switch_pass\r"
+    }
+}
+
+# ---- Enter Junos CLI ----
+expect {
+    "%" {
+        send "cli\r"
+        expect ">"
+    }
+    ">" { }
+}
+
+# ---- Enter Configuration Mode ----
+send "configure\r"
+expect "#"
+
+# ---- Create User ----
+send "set system login user $new_user class super-user\r"
+expect "#"
+
+# ---- Set Plain-Text Password ----
+send "set system login user $new_user authentication plain-text-password\r"
+
+expect {
+    -nocase "new password:" {
+        send "$new_pass\r"
+        exp_continue
+    }
+    -nocase "retype new password:" {
+        send "$new_pass\r"
+    }
+}
+
+expect "#"
+
+# ---- Review & Commit ----
+send "show | compare\r"
+expect "#"
+
+send "commit and-quit\r"
+expect "#"
+
+send "exit\r"
+expect {
+    "$ " { }
+    "# " { }
+}
+
+send "exit\r"
+expect eof

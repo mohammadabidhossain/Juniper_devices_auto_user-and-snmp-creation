@@ -1,0 +1,96 @@
+#!/usr/bin/expect -f
+
+# ============================================================
+# Usage: ./configure_snmp.exp
+# Automates Junos SNMP community, location, and NMS ACL rollout
+# via a centralized jump host.
+# ============================================================
+
+set jump_ip         "10.0.0.10"
+set jump_user       "admin"
+set jump_pass       "ChangeMe123!"
+
+set switch_ip       "10.0.10.2"
+set switch_user     "root"
+set switch_pass     "JunosPass123!"
+
+set snmp_community  "ReadOnlyCommunity"
+set nms_subnet      "10.100.0.0/24"
+set snmp_location   "HQ Data Center - Rack 01"
+
+set timeout 20
+
+# ---- HOP 1: SSH to Jump Host ----
+spawn ssh $jump_user@$jump_ip
+
+expect {
+    -nocase "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    -nocase "assword:" {
+        send "$jump_pass\r"
+    }
+}
+
+expect {
+    -nocase "assword:" {
+        send "$jump_pass\r"
+        exp_continue
+    }
+    "$ " { }
+    "# " { }
+    ">" { }
+}
+
+# ---- HOP 2: SSH to Target Switch ----
+send "ssh $switch_user@$switch_ip\r"
+
+expect {
+    -nocase "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    -nocase "assword:" {
+        send "$switch_pass\r"
+    }
+}
+
+# ---- Enter Junos CLI ----
+expect {
+    "%" {
+        send "cli\r"
+        expect ">"
+    }
+    ">" { }
+}
+
+# ---- Configure SNMP Parameters ----
+send "configure\r"
+expect "#"
+
+send "set snmp community \"$snmp_community\" authorization read-only\r"
+expect "#"
+
+send "set snmp community \"$snmp_community\" clients $nms_subnet\r"
+expect "#"
+
+send "set snmp location \"$snmp_location\"\r"
+expect "#"
+
+# ---- Review & Commit ----
+send "show | compare\r"
+expect "#"
+
+send "commit and-quit\r"
+expect "#"
+
+send "exit\r"
+expect {
+    "$ " { }
+    "# " { }
+    ">" { }
+}
+
+send "exit\r"
+expect eof
